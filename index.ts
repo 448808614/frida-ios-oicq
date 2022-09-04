@@ -21,8 +21,8 @@ if (ObjC.available) {
     })
 
     hook_packet()
-    //hook_ecdh()
-    //hook_tlv()
+    hook_ecdh()
+    hook_tlv()
 
     const targets = FCiOS.findAllByPattern('**[** *WupBufafer*]');
     targets.forEach(function (target: any) {
@@ -92,13 +92,13 @@ function hook_tlv() {
             let value = new NativePointer(value_ptr.bytes())
                 .readByteArray(value_ptr.length())!!
 
+            console.log("===============<TLV>")
             console.log("Tlv", "0x" + ver.toString(16), arrayBuffer2Hex(value))
         },
     })
 }
 
 function hook_ecdh() {
-    console.log("Start hooking ecdh...")
     let WtloginPlatformInfo: ObjC.Object
 
     Interceptor.attach(ObjC.classes["WtloginPlatformInfo"]["- setECDHShareKey:andPubKey:andPubKeyLen:wKeyVer:"].implementation, {
@@ -110,9 +110,9 @@ function hook_ecdh() {
             let public_key = new NativePointer(args[3])
                 .readByteArray(args[4].toInt32())!!
 
-            console.log("Hook ecdh successful!!!")
-            console.log("WtloginPlatformInfoV2", arrayBuffer2Hex(share_key))
-            console.log("WtloginPlatformInfoV2", arrayBuffer2Hex(public_key))
+            console.log("===============<ECDH>")
+            console.log("SHARE", arrayBuffer2Hex(share_key))
+            console.log("PUBLIC", arrayBuffer2Hex(public_key))
         }
     })
 }
