@@ -4,6 +4,7 @@ import {Anti} from "./utils/android/Anti";
 import anti_debug = Anti.anti_debug;
 import {DMLog} from "./utils/dmlog";
 import arrayBuffer2Hex = FCCommon.arrayBuffer2Hex;
+import Object = ObjC.Object;
 
 if (Java.available) {
     anti_debug()
@@ -16,7 +17,7 @@ if (ObjC.available) {
 
     //QQPacketDispatchBlockCbService/GuildQQGProPacketService/WupTransportationProxy/ODQQSSOChannel
     ObjC.classes["QPacketDispatchService"].$ownMethods.forEach(function (name) {
-        // console.log("name: [" + name + "]")
+        console.log("name: [" + name + "]")
     })
 
     hook_packet()
@@ -30,33 +31,56 @@ if (ObjC.available) {
 }
 
 function hook_packet() {
-    // - decodeRspData:request:error:
-    // - encodeReqBizData:outError:
+    let uin: Int64
 
-
-    // [- sendWupBuffer:cmd:seq:immediately:timeOut:]
-    //  [- sendWupBuffer:cmd:seq:immediately:]
-    // [- sendWupBuffer:cmd:seq:immediately:timeOut:answerFlag:]
-    //  [- sendWupBufferBase:cmd:seq:resendSeq:immediately:timeOut:answerFlag:isControl:]
-
-    // [- ]
-    // [- sendWupBuffer:cmd:seq:resendSeq:immediately:isControl:answeiFlag:timeOut:isNotCombine:traceInfo:withDelegate:]
-
-    //  [- sendWupBuffer:cmd:seq:immediately:timeOut:answerFlag:isControl:andIsCombine:]
-//sendWupBuffer:cmd:seq:resendSeq:immediately:isControl:answeiFlag:timeOut:isNotCombine:traceInfo:transInfo:withDelegate:
-    Interceptor.attach(ObjC.classes["QPacketDispatchService"]["- sendWupBufferBase:cmd:seq:resendSeq:immediately:timeOut:answerFlag:isControl:traceInfo:transInfo:accountUin:"].implementation, {
+    let QPacketDispatchService = ObjC.classes["QPacketDispatchService"]
+    Interceptor.attach(QPacketDispatchService["- onMSFRecvDataFromBackend:buf:bufLen:seq:channelSource:"].implementation, {
         onEnter:args => {
-            console.log("===============<A>")
+            console.log("===============<FromService>")
+            let seq = args[5].toInt32()
+            let cmd: string
+            {
+                let buffer = new Buffer(
+                    args[2].readByteArray(64)!!
+                )
 
+                for (let i = 0; i < 64; i++) {
+                    if(buffer.readInt8(i) == 0) {
+                        buffer = buffer.slice(0, i)
+                        break
+                    }
+                }
+
+                cmd = buffer.toString()
+            }
+            let dataPtr = new NativePointer(args[3])
+            let wupBuffer = dataPtr.readByteArray(args[4].toUInt32() + 4)!!.slice(4)
+
+            console.log("[CMD]", cmd)
+            console.log("[UIN]", uin)
+            console.log("[SEQ]", seq)
+            // console.log("[BUFFER]", arrayBuffer2Hex(wupBuffer))
+        }
+    })
+    Interceptor.attach(QPacketDispatchService["- sendWupBufferBase:cmd:seq:resendSeq:immediately:timeOut:answerFlag:isControl:traceInfo:transInfo:accountUin:"].implementation, {
+        onEnter:args => {
             let cmd = new ObjC.Object(args[3]).toString()
             let dataPtr = new NativePointer(args[2])
             let length = new Buffer(dataPtr.readByteArray(4)!!)
                 .readUInt32BE(0)
             let wupBuffer = dataPtr.readByteArray(length + 4)!!.slice(4)
-            let uin = int64(new ObjC.Object(args[11]).toString())
+            uin = int64(new ObjC.Object(args[11]).toString())
+            let seq = new ObjC.Object(args[0])["- getSeq"]()
+
+            console.log("===============<ToService>")
+            console.log("[CMD]", cmd)
+            console.log("[UIN]", uin)
+            console.log("[SEQ]", seq)
+            // console.log("[BUFFER]", arrayBuffer2Hex(wupBuffer))
+
+            // 6/9/10 bool
         }
     })
-
 }
 
 function hook_tlv() {
