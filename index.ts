@@ -16,18 +16,13 @@ if (ObjC.available) {
 
 
     //QQPacketDispatchBlockCbService/GuildQQGProPacketService/WupTransportationProxy/ODQQSSOChannel
-    ObjC.classes["QPacketDispatchService"].$ownMethods.forEach(function (name) {
-        console.log("name: [" + name + "]")
-    })
+    //ObjC.classes["QPacketDispatchService"].$ownMethods.forEach(function (name) {
+    //    console.log("name: [" + name + "]")
+    //})
 
     hook_packet()
     hook_ecdh()
     hook_tlv()
-
-    const targets = FCiOS.findAllByPattern('**[** *WupBufafer*]');
-    targets.forEach(function (target: any) {
-        // DMLog.i('FindClass', 'target.name: ' + target.name + ', target.address: ' + target.address);
-    });
 }
 
 function hook_packet() {
