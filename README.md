@@ -2,7 +2,9 @@
 
 在IOSQQ上Hook的项目实例一。
 
-# FridaContainer
+该项目使用来自[FridaContainer](https://github.com/deathmemory/FridaContainer)，如有侵权请联系删除。
+
+# 使用自FridaContainer
 
 FridaContainer 整合了网上流行的和自己编写的常用的 frida 脚本，为逆向工作提效之用。
 

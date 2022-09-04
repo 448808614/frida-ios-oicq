@@ -3,6 +3,7 @@ import {FCiOS} from "./utils/FCiOS";
 import {Anti} from "./utils/android/Anti";
 import anti_debug = Anti.anti_debug;
 import {DMLog} from "./utils/dmlog";
+import arrayBuffer2Hex = FCCommon.arrayBuffer2Hex;
 
 if (Java.available) {
     anti_debug()
@@ -13,18 +14,18 @@ if (ObjC.available) {
     // FCiOS.trace_url()
 
 
-    //
-    ObjC.classes["QQECNetwork"].$ownMethods.forEach(function (name) {
+    //QQPacketDispatchBlockCbService/GuildQQGProPacketService/WupTransportationProxy/ODQQSSOChannel
+    ObjC.classes["QPacketDispatchService"].$ownMethods.forEach(function (name) {
         // console.log("name: [" + name + "]")
     })
 
-    // hook_packet()
+    hook_packet()
     //hook_ecdh()
     //hook_tlv()
 
-    const targets = FCiOS.findAllByPattern('**[*Codec* *Cmd*]');
+    const targets = FCiOS.findAllByPattern('**[** *WupBufafer*]');
     targets.forEach(function (target: any) {
-        DMLog.i('FindClass', 'target.name: ' + target.name + ', target.address: ' + target.address);
+        // DMLog.i('FindClass', 'target.name: ' + target.name + ', target.address: ' + target.address);
     });
 }
 
@@ -32,32 +33,27 @@ function hook_packet() {
     // - decodeRspData:request:error:
     // - encodeReqBizData:outError:
 
-    Interceptor.attach(ObjC.classes["QQECNetwork"]["- requestWithCmd:reqParams:successBlock:errorBlock:"].implementation, {
-        onEnter:args => {
-            console.log("===============<J>")
-        }
-    })
 
-    Interceptor.attach(ObjC.classes["QQECNetwork"]["- encodeReqParams:params:"].implementation, {
-        onEnter:args => {
-            console.log("===============<K>")
-        }
-    })
+    // [- sendWupBuffer:cmd:seq:immediately:timeOut:]
+    //  [- sendWupBuffer:cmd:seq:immediately:]
+    // [- sendWupBuffer:cmd:seq:immediately:timeOut:answerFlag:]
+    //  [- sendWupBufferBase:cmd:seq:resendSeq:immediately:timeOut:answerFlag:isControl:]
 
-    // rb: TXCCodecUtils/QQExpandSSOStreamCodec/QQProtobufJSONCodec/SEJceCodec
-    Interceptor.attach(ObjC.classes["QQNetworkSSOCodecImp"]["- encodeReq:error:"].implementation, {
+    // [- ]
+    // [- sendWupBuffer:cmd:seq:resendSeq:immediately:isControl:answeiFlag:timeOut:isNotCombine:traceInfo:withDelegate:]
+
+    //  [- sendWupBuffer:cmd:seq:immediately:timeOut:answerFlag:isControl:andIsCombine:]
+//sendWupBuffer:cmd:seq:resendSeq:immediately:isControl:answeiFlag:timeOut:isNotCombine:traceInfo:transInfo:withDelegate:
+    Interceptor.attach(ObjC.classes["QPacketDispatchService"]["- sendWupBufferBase:cmd:seq:resendSeq:immediately:timeOut:answerFlag:isControl:traceInfo:transInfo:accountUin:"].implementation, {
         onEnter:args => {
-            console.log("===================<B>")
-            //console.log(args[2])
-            //console.log(args[3])
-            //console.log(args[4])
-            //console.log(args[5])
-        }
-    })
-    Interceptor.attach(ObjC.classes["QQSSOBaseCodec"]["- encodeReq:error:"].implementation, {
-        onLeave:retval => {
-            let r = new ObjC.Object(retval)
-            console.log(r)
+            console.log("===============<A>")
+
+            let cmd = new ObjC.Object(args[3]).toString()
+            let dataPtr = new NativePointer(args[2])
+            let length = new Buffer(dataPtr.readByteArray(4)!!)
+                .readUInt32BE(0)
+            let wupBuffer = dataPtr.readByteArray(length + 4)!!.slice(4)
+            let uin = int64(new ObjC.Object(args[11]).toString())
         }
     })
 
@@ -72,7 +68,7 @@ function hook_tlv() {
             let value = new NativePointer(value_ptr.bytes())
                 .readByteArray(value_ptr.length())!!
 
-            console.log("Tlv", "0x" + ver.toString(16), buf2hex(value))
+            console.log("Tlv", "0x" + ver.toString(16), arrayBuffer2Hex(value))
         },
     })
 }
@@ -91,12 +87,8 @@ function hook_ecdh() {
                 .readByteArray(args[4].toInt32())!!
 
             console.log("Hook ecdh successful!!!")
-            console.log("WtloginPlatformInfoV2", buf2hex(share_key))
-            console.log("WtloginPlatformInfoV2", buf2hex(public_key))
+            console.log("WtloginPlatformInfoV2", arrayBuffer2Hex(share_key))
+            console.log("WtloginPlatformInfoV2", arrayBuffer2Hex(public_key))
         }
     })
-}
-
-function buf2hex(buffer: ArrayBuffer): string { // buffer is an ArrayBuffer
-    return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
 }
